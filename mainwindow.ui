@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>620</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>金山打字通 2016</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QStackedWidget" name="stackedWidget">
+      <widget class="QWidget" name="pageHome">
+       <layout class="QVBoxLayout" name="homeLayout">
+        <item>
+         <widget class="QLabel" name="titleLabel">
+          <property name="text">
+           <string>欢迎使用 金山打字通 2016</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <property name="styleSheet">
+           <string>font-size: 26px; font-weight: bold; color: #2d6ec7;</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="subtitleLabel">
+          <property name="text">
+           <string>零基础入门，轻松学打字</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <property name="styleSheet">
+           <string>font-size: 16px; color: #555555;</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="buttonLayout">
+          <item>
+           <widget class="QPushButton" name="btnNewUser">
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>140</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>新手入门</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnEnglishTyping">
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>140</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>英文打字</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnPinyinTyping">
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>140</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>拼音打字</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnWubiTyping">
+            <property name="minimumSize">
+             <size>
+              <width>160</width>
+              <height>140</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>五笔打字</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btnTypingGame">
+          <property name="minimumSize">
+           <size>
+            <width>240</width>
+            <height>60</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>打字游戏</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="pageGameSelect">
+       <property name="styleSheet">
+        <string>background-image: url(:/resource/Apple/Images/APPLE_BACKGROUND.png); background-position: center; background-repeat: no-repeat;</string>
+       </property>
+       <layout class="QVBoxLayout" name="gameSelectLayout">
+        <item>
+         <layout class="QHBoxLayout" name="headerLayout">
+          <item>
+           <widget class="QPushButton" name="btnBackHome">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>返回</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="gameSelectTitle">
+            <property name="text">
+             <string>打字游戏</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+            <property name="styleSheet">
+             <string>font-size: 22px; font-weight: bold; color: #ffffff;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="gameOptionsLayout">
+          <item>
+           <widget class="QPushButton" name="btnSaveApple">
+            <property name="minimumSize">
+             <size>
+              <width>240</width>
+              <height>160</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>拯救苹果的游戏</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnSpaceBattle">
+            <property name="minimumSize">
+             <size>
+              <width>240</width>
+              <height>160</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>太空大战</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

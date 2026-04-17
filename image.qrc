@@ -1,0 +1,45 @@
+<RCC>
+    <qresource prefix="/">
+        <file>image/peiqi.png</file>
+    </qresource>
+    <qresource prefix="/resource/Common/Images">
+        <file>resource/Common/Images/CANCEL.png</file>
+        <file>resource/Common/Images/DEFAULT.png</file>
+        <file>resource/Common/Images/MAIN_DLG_BG.png</file>
+        <file>resource/Common/Images/MAIN_DLG_EXIT.png</file>
+        <file>resource/Common/Images/MAIN_DLG_REPLAY.png</file>
+        <file>resource/Common/Images/NO.png</file>
+        <file>resource/Common/Images/OK.png</file>
+        <file>resource/Common/Images/PUBLIC_END.png</file>
+        <file>resource/Common/Images/PUBLIC_EXIT.png</file>
+        <file>resource/Common/Images/PUBLIC_PAUSE.png</file>
+        <file>resource/Common/Images/PUBLIC_SETUP.png</file>
+        <file>resource/Common/Images/PUBLIC_START.png</file>
+        <file>resource/Common/Images/SLIDER_BG.png</file>
+        <file>resource/Common/Images/SLIDER_SLIDER.png</file>
+        <file>resource/Common/Images/YES.png</file>
+    </qresource>
+    <qresource prefix="/resource/Common/Sounds">
+        <file>resource/Common/Sounds/ANIBTN_CLICK.wav</file>
+        <file>resource/Common/Sounds/ANIBTN_ENTER.wav</file>
+        <file>resource/Common/Sounds/BTN_CLICK.wav</file>
+        <file>resource/Common/Sounds/GLIDE.wav</file>
+        <file>resource/Common/Sounds/TYPE.wav</file>
+    </qresource>
+    <qresource prefix="/resource/Apple/Images">
+        <file>resource/Apple/Images/APPLE_BACKGROUND.png</file>
+        <file>resource/Apple/Images/APPLE_BAD.png</file>
+        <file>resource/Apple/Images/APPLE_BASKET.png</file>
+        <file>resource/Apple/Images/APPLE_DLG_BG.png</file>
+        <file>resource/Apple/Images/APPLE_DLG_END.png</file>
+        <file>resource/Apple/Images/APPLE_DLG_NEXT.png</file>
+        <file>resource/Apple/Images/APPLE_DLG_REPLAY.png</file>
+        <file>resource/Apple/Images/APPLE_NORMAL.png</file>
+        <file>resource/Apple/Images/APPLE_SETUP.png</file>
+        <file>resource/Apple/Images/APPLE_SMALL.png</file>
+    </qresource>
+    <qresource prefix="/resource/Apple/Sounds">
+        <file>resource/Apple/Sounds/APPLE_BG.wav</file>
+        <file>resource/Apple/Sounds/APPLE_IN.wav</file>
+    </qresource>
+</RCC>
