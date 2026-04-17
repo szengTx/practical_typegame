@@ -27,9 +27,9 @@ qt5_wrap_ui(UI_HEADERS ${UI_FILES})
 source_group("Form Files" FILES ${UI_FILES})
 source_group("Resource Files" FILES ${RCC_FILES})
 
-add_executable(${PROJECT_NAME} WIN32 ${HEADER_FILES} ${CPP_FILES} ${UI_FILES} ${RCC_FILES})
+qt5_add_resources(RESOURCE_SOURCES ${RCC_FILES})
 
-qt5_add_resources(RESOURCE_ADDED ${RCC_FILES})
+add_executable(${PROJECT_NAME} WIN32 ${HEADER_FILES} ${CPP_FILES} ${UI_HEADERS} ${RESOURCE_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} 
 	Qt5::Widgets

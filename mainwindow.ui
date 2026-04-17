@@ -117,9 +117,6 @@
        </layout>
       </widget>
       <widget class="QWidget" name="pageGameSelect">
-       <property name="styleSheet">
-        <string>background-image: url(:/resource/Apple/Images/APPLE_BACKGROUND.png); background-position: center; background-repeat: no-repeat;</string>
-       </property>
        <layout class="QVBoxLayout" name="gameSelectLayout">
         <item>
          <layout class="QHBoxLayout" name="headerLayout">

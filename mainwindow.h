@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QSoundEffect>
+#include <QLabel>
+#include <QMediaPlayer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -25,10 +27,19 @@ private slots:
     void onBackHomeClicked();
     void onSelectSaveAppleClicked();
     void onSelectSpaceBattleClicked();
+    void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
+
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
     Ui::MainWindow *ui;
-    QSoundEffect appleBgSound;
+    QMediaPlayer *appleBgPlayer;
+    QSoundEffect btnClickSound;
+    QSoundEffect aniBtnEnterSound;
+    QLabel *homeBackgroundLabel;
+    QLabel *appleBackgroundLabel;
 };
 #endif // MAINWINDOW_H
 
