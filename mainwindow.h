@@ -58,6 +58,29 @@ private:
         bool active;
     };
 
+    struct EnemyItem {
+        QLabel *enemyLabel;
+        QLabel *letterLabel;
+        QChar letter;
+        int speed;
+        QPoint position;
+        bool active;
+    };
+
+    struct BulletItem {
+        QLabel *bulletLabel;
+        QPoint position;
+        QPoint target;
+        bool active;
+    };
+
+    struct RewardWord {
+        QLabel *wordLabel;
+        QString word;
+        QPoint position;
+        bool active;
+    };
+
     Ui::MainWindow *ui;
     QMediaPlayer *appleBgPlayer;
     QSoundEffect btnClickSound;
@@ -100,6 +123,69 @@ private:
     int totalInputCount;
     int currentAppleCount;
 
+    // Space Battle members
+    QMediaPlayer *spaceBgPlayer;
+    QSoundEffect spaceBlastSound;
+    QSoundEffect spacePlaneOutSound;
+    QSoundEffect spaceShootSound;
+    QSoundEffect spaceWordOutSound;
+    QSoundEffect spaceUpgradeSound;
+    QLabel *spaceBackgroundLabel;
+    QWidget *pageSpaceBattle;
+    QLabel *spaceBattleBackgroundLabel;
+    QWidget *spaceGameArea;
+    QLabel *shipLabel;
+    QLabel *spaceStatusLabel;
+    QLabel *spaceScoreLabel;
+    QLabel *spaceLifeLabel;
+    QLabel *spaceTimeLabel;
+    QLabel *spaceLevelValueLabel;
+    QLabel *spaceEnemyCountValueLabel;
+    QLabel *spaceCurrentCountLabel;
+    QSlider *spaceEnemyCountSlider;
+    QSlider *spaceEnemySpeedSlider;
+    QSlider *spaceUpgradeIntervalSlider;
+    QCheckBox *spaceRewardModeToggle;
+    QPushButton *btnBackToGameSelectSpace;
+    QPushButton *btnStartSpaceGame;
+    QPushButton *btnPauseSpaceGame;
+    QPushButton *btnResetSpaceGame;
+    QTimer *spaceGameTimer;
+    QTimer *spaceSpawnTimer;
+    QTimer *spaceRewardTimer;
+    QTimer *spaceUpgradeTimer;
+    QVector<EnemyItem> enemies;
+    QVector<BulletItem> bullets;
+    QVector<RewardWord> rewardWords;
+    GameState spaceGameState;
+    int spaceScore;
+    int spaceLife;
+    int spaceTime;
+    int spaceMaxEnemyCount;
+    int spaceEnemySpeed;
+    int spaceUpgradeInterval;
+    bool spaceRewardMode;
+    QStringList localWords; // for reward mode fallback
+
+    void createSpaceBattlePage();
+    void startSpaceBattle();
+    void pauseSpaceBattle();
+    void resetSpaceBattle();
+    void spawnEnemy();
+    void spawnBullet(const QPoint &start, const QPoint &target);
+    void spawnRewardWord();
+    void updateSpaceGameStateLabels();
+    void removeEnemy(int index);
+    void removeBullet(int index);
+    void removeRewardWord(int index);
+    void handleKeyPressForLetterSpace(const QChar &letter);
+    void onSpaceGameTimerTimeout();
+    void onSpaceSpawnTimerTimeout();
+    void onSpaceRewardTimerTimeout();
+    void onSpaceUpgradeTimerTimeout();
+    void showSpaceGameEndDialog(bool success);
+    QString getRandomWord(); // for reward mode
+
     void createSaveApplePage();
     void startAppleGame();
     void pauseAppleGame();
@@ -110,6 +196,7 @@ private:
     void handleKeyPressForLetter(const QChar &letter);
     void onGameTimerTimeout();
     void onSpawnTimerTimeout();
+    void showGameEndDialog(bool success);
 };
 #endif // MAINWINDOW_H
 

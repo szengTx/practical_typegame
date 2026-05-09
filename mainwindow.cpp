@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <QMessageBox>
+#include <QDialog>
 #include <QUrl>
 #include <QPixmap>
 #include <QVBoxLayout>
@@ -75,6 +76,23 @@ MainWindow::MainWindow(QWidget *parent)
     appleFailSound.setSource(QUrl("qrc:/resource/Common/Sounds/ANIBTN_CLICK.wav"));
     appleFailSound.setVolume(0.7f);
 
+    // 初始化太空大战音乐播放器
+    spaceBgPlayer = new QMediaPlayer(this);
+    spaceBgPlayer->setMedia(QUrl("qrc:/resource/Space/Sounds/SPACE_BG.wav"));
+    spaceBgPlayer->setVolume(60);
+    connect(spaceBgPlayer, &QMediaPlayer::mediaStatusChanged, this, &MainWindow::onMediaStatusChanged);
+
+    spaceBlastSound.setSource(QUrl("qrc:/resource/Space/Sounds/SPACE_BLAST.wav"));
+    spaceBlastSound.setVolume(0.9f);
+    spacePlaneOutSound.setSource(QUrl("qrc:/resource/Space/Sounds/SPACE_PLANEOUT.wav"));
+    spacePlaneOutSound.setVolume(0.8f);
+    spaceShootSound.setSource(QUrl("qrc:/resource/Space/Sounds/SPACE_SHOOT.wav"));
+    spaceShootSound.setVolume(0.8f);
+    spaceWordOutSound.setSource(QUrl("qrc:/resource/Space/Sounds/SPACE_WORDOUT.wav"));
+    spaceWordOutSound.setVolume(0.8f);
+    spaceUpgradeSound.setSource(QUrl("qrc:/resource/Space/Sounds/UPGRADE.wav"));
+    spaceUpgradeSound.setVolume(0.8f);
+
     // 创建主界面背景图片标签
     homeBackgroundLabel = new QLabel(ui->pageHome);
     QPixmap homePixmap(":/resource/Common/Images/MAIN_DLG_BG.png");
@@ -97,6 +115,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     createSaveApplePage();
 
+    createSpaceBattlePage();
+
+    // 初始化本地词库 for reward mode
+    localWords << "apple" << "space" << "battle" << "typing" << "game" << "enemy" << "ship" << "bomb" << "score" << "life";
+
     // 安装事件过滤器到所有按钮，用于悬停声音
     ui->btnNewUser->installEventFilter(this);
     ui->btnEnglishTyping->installEventFilter(this);
@@ -107,6 +130,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->btnSaveApple->installEventFilter(this);
     ui->btnSpaceBattle->installEventFilter(this);
     btnBackToGameSelect->installEventFilter(this);
+    btnBackToGameSelectSpace->installEventFilter(this);
+    btnStartSpaceGame->installEventFilter(this);
+    btnPauseSpaceGame->installEventFilter(this);
+    btnResetSpaceGame->installEventFilter(this);
 }
 
 MainWindow::~MainWindow()
@@ -136,20 +163,20 @@ void MainWindow::createSaveApplePage()
     saveAppleLayout->setSpacing(0);
 
     QWidget *topPanel = new QWidget(pageSaveApple);
-    topPanel->setFixedHeight(140);
-    topPanel->setStyleSheet("background: rgba(0, 0, 0, 0.5);");
+    topPanel->setFixedHeight(100);
+    topPanel->setStyleSheet("background: rgba(0, 0, 0, 0.45);");
     QHBoxLayout *topLayout = new QHBoxLayout(topPanel);
-    topLayout->setContentsMargins(16, 12, 16, 12);
-    topLayout->setSpacing(12);
+    topLayout->setContentsMargins(14, 10, 14, 10);
+    topLayout->setSpacing(10);
 
-    statusLabel = new QLabel(tr("状态: 未开始"), topPanel);
-    statusLabel->setStyleSheet("color: white; font-size: 18px;");
-    scoreLabel = new QLabel(tr("成功: 0"), topPanel);
-    scoreLabel->setStyleSheet("color: white; font-size: 16px;");
-    failLabel = new QLabel(tr("失败: 0"), topPanel);
-    failLabel->setStyleSheet("color: white; font-size: 16px;");
-    accuracyLabel = new QLabel(tr("准确率: 0%"), topPanel);
-    accuracyLabel->setStyleSheet("color: white; font-size: 16px;");
+    statusLabel = new QLabel(QString::fromUtf16(u"\u72B6\u6001: \u672A\u5F00\u59CB"), topPanel);
+    statusLabel->setStyleSheet("color: white; font-size: 16px;");
+    scoreLabel = new QLabel(QString::fromUtf16(u"\u6210\u529F: 0"), topPanel);
+    scoreLabel->setStyleSheet("color: white; font-size: 14px;");
+    failLabel = new QLabel(QString::fromUtf16(u"\u5931\u8D25: 0"), topPanel);
+    failLabel->setStyleSheet("color: white; font-size: 14px;");
+    accuracyLabel = new QLabel(QString::fromUtf16(u"\u51C6\u786E\u7387: 0%"), topPanel);
+    accuracyLabel->setStyleSheet("color: white; font-size: 14px;");
 
     topLayout->addWidget(statusLabel);
     topLayout->addStretch();
@@ -158,23 +185,23 @@ void MainWindow::createSaveApplePage()
     topLayout->addWidget(accuracyLabel);
 
     QWidget *controlPanel = new QWidget(pageSaveApple);
-    controlPanel->setFixedHeight(120);
-    controlPanel->setStyleSheet("background: rgba(0, 0, 0, 0.35);");
+    controlPanel->setFixedHeight(90);
+    controlPanel->setStyleSheet("background: rgba(0, 0, 0, 0.45);");
     QHBoxLayout *controlLayout = new QHBoxLayout(controlPanel);
-    controlLayout->setContentsMargins(16, 8, 16, 8);
-    controlLayout->setSpacing(16);
+    controlLayout->setContentsMargins(12, 8, 12, 8);
+    controlLayout->setSpacing(12);
 
     QWidget *sliderPanel = new QWidget(controlPanel);
     QVBoxLayout *sliderLayout = new QVBoxLayout(sliderPanel);
     sliderLayout->setContentsMargins(0, 0, 0, 0);
     sliderLayout->setSpacing(8);
-    QLabel *levelLabel = new QLabel(tr("等级"), sliderPanel);
+    QLabel *levelLabel = new QLabel(QString::fromUtf16(u"\u7B49\u7EA7"), sliderPanel);
     levelLabel->setStyleSheet("color: white; font-size: 14px;");
     levelSlider = new QSlider(Qt::Horizontal, sliderPanel);
     levelSlider->setRange(1, 10);
     levelSlider->setValue(1);
     levelSlider->setStyleSheet("QSlider::groove:horizontal { height: 12px; background: transparent; } QSlider::handle:horizontal { width: 20px; background: white; border-radius: 10px; } ");
-    levelValueLabel = new QLabel(tr("1"), sliderPanel);
+    levelValueLabel = new QLabel(QString::number(1), sliderPanel);
     levelValueLabel->setStyleSheet("color: white; font-size: 14px;");
     sliderLayout->addWidget(levelLabel);
     sliderLayout->addWidget(levelSlider);
@@ -184,13 +211,13 @@ void MainWindow::createSaveApplePage()
     QVBoxLayout *countLayout = new QVBoxLayout(countPanel);
     countLayout->setContentsMargins(0, 0, 0, 0);
     countLayout->setSpacing(8);
-    QLabel *maxLabel = new QLabel(tr("同屏苹果数"), countPanel);
+    QLabel *maxLabel = new QLabel(QString::fromUtf16(u"\u540C\u5C4F\u82F9\u679C\u6570"), countPanel);
     maxLabel->setStyleSheet("color: white; font-size: 14px;");
     maxAppleSlider = new QSlider(Qt::Horizontal, countPanel);
     maxAppleSlider->setRange(1, 5);
     maxAppleSlider->setValue(3);
     maxAppleSlider->setStyleSheet("QSlider::groove:horizontal { height: 12px; background: transparent; } QSlider::handle:horizontal { width: 20px; background: white; border-radius: 10px; } ");
-    currentCountLabel = new QLabel(tr("3"), countPanel);
+    currentCountLabel = new QLabel(QString::number(3), countPanel);
     currentCountLabel->setStyleSheet("color: white; font-size: 14px;");
     countLayout->addWidget(maxLabel);
     countLayout->addWidget(maxAppleSlider);
@@ -200,19 +227,19 @@ void MainWindow::createSaveApplePage()
     QVBoxLayout *targetLayout = new QVBoxLayout(targetPanel);
     targetLayout->setContentsMargins(0, 0, 0, 0);
     targetLayout->setSpacing(8);
-    QLabel *targetLabelText = new QLabel(tr("过关目标"), targetPanel);
+    QLabel *targetLabelText = new QLabel(QString::fromUtf16(u"\u8FC7\u5173\u76EE\u6807"), targetPanel);
     targetLabelText->setStyleSheet("color: white; font-size: 14px;");
     targetSlider = new QSlider(Qt::Horizontal, targetPanel);
     targetSlider->setRange(1, 20);
     targetSlider->setValue(8);
     targetSlider->setStyleSheet("QSlider::groove:horizontal { height: 12px; background: transparent; } QSlider::handle:horizontal { width: 20px; background: white; border-radius: 10px; } ");
-    targetValueLabel = new QLabel(tr("8"), targetPanel);
+    targetValueLabel = new QLabel(QString::number(8), targetPanel);
     targetValueLabel->setStyleSheet("color: white; font-size: 14px;");
     targetLayout->addWidget(targetLabelText);
     targetLayout->addWidget(targetSlider);
     targetLayout->addWidget(targetValueLabel, 0, Qt::AlignRight);
 
-    soundToggle = new QCheckBox(tr("音效开启"), controlPanel);
+    soundToggle = new QCheckBox(QString::fromUtf16(u"\u97F3\u6548\u5F00\u542F"), controlPanel);
     soundToggle->setChecked(true);
     soundToggle->setStyleSheet("color: white; font-size: 14px;");
 
@@ -222,20 +249,23 @@ void MainWindow::createSaveApplePage()
     controlLayout->addWidget(soundToggle, 1, Qt::AlignVCenter);
 
     QWidget *buttonPanel = new QWidget(pageSaveApple);
-    buttonPanel->setFixedHeight(70);
-    buttonPanel->setStyleSheet("background: rgba(0, 0, 0, 0.45);");
+    buttonPanel->setFixedHeight(60);
+    buttonPanel->setStyleSheet("background: rgba(0, 0, 0, 0.35);");
     QHBoxLayout *buttonLayout = new QHBoxLayout(buttonPanel);
-    buttonLayout->setContentsMargins(16, 8, 16, 8);
-    buttonLayout->setSpacing(12);
-    btnStartGame = new QPushButton(tr("开始游戏"), buttonPanel);
-    btnStartGame->setIcon(QIcon(":/resource/Common/Images/PUBLIC_START.png"));
-    btnStartGame->setIconSize(QSize(24, 24));
-    btnPauseGame = new QPushButton(tr("暂停"), buttonPanel);
-    btnPauseGame->setIcon(QIcon(":/resource/Common/Images/PUBLIC_PAUSE.png"));
-    btnPauseGame->setIconSize(QSize(24, 24));
-    btnResetGame = new QPushButton(tr("重置"), buttonPanel);
-    btnResetGame->setIcon(QIcon(":/resource/Common/Images/PUBLIC_EXIT.png"));
-    btnResetGame->setIconSize(QSize(24, 24));
+    buttonLayout->setContentsMargins(12, 6, 12, 6);
+    buttonLayout->setSpacing(10);
+    btnStartGame = new QPushButton(QString::fromUtf16(u"\u5F00\u59CB\u6E38\u620F"), buttonPanel);
+    btnStartGame->setIcon(QIcon(":/resource/Apple/Images/APPLE_DLG_REPLAY.png"));
+    btnStartGame->setIconSize(QSize(20, 20));
+    btnStartGame->setStyleSheet("font-size: 12px; padding: 8px;");
+    btnPauseGame = new QPushButton(QString::fromUtf16(u"\u6682\u505C"), buttonPanel);
+    btnPauseGame->setIcon(QIcon(":/resource/Apple/Images/APPLE_DLG_END.png"));
+    btnPauseGame->setIconSize(QSize(20, 20));
+    btnPauseGame->setStyleSheet("font-size: 12px; padding: 8px;");
+    btnResetGame = new QPushButton(QString::fromUtf16(u"\u91CD\u7F6E"), buttonPanel);
+    btnResetGame->setIcon(QIcon(":/resource/Apple/Images/APPLE_DLG_NEXT.png"));
+    btnResetGame->setIconSize(QSize(20, 20));
+    btnResetGame->setStyleSheet("font-size: 12px; padding: 8px;");
 
     buttonLayout->addStretch();
     buttonLayout->addWidget(btnStartGame);
@@ -246,20 +276,30 @@ void MainWindow::createSaveApplePage()
     saveAppleLayout->addWidget(topPanel);
     saveAppleLayout->addWidget(controlPanel);
     saveAppleLayout->addWidget(buttonPanel);
-    saveAppleLayout->addWidget(saveAppleGameArea);
+    saveAppleLayout->addWidget(saveAppleGameArea, 1);
 
     basketLabel = new QLabel(saveAppleGameArea);
     QPixmap basketPixmap(":/resource/Apple/Images/APPLE_BASKET.png");
     if (!basketPixmap.isNull()) {
-        basketLabel->setPixmap(basketPixmap.scaled(180, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        basketLabel->setPixmap(basketPixmap.scaled(220, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
     basketLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
     basketLabel->show();
 
-    btnBackToGameSelect = new QPushButton(tr("返回游戏选择"), pageSaveApple);
-    btnBackToGameSelect->setIcon(QIcon(":/resource/Common/Images/PUBLIC_EXIT.png"));
-    btnBackToGameSelect->setIconSize(QSize(32, 32));
-    btnBackToGameSelect->setMinimumSize(180, 50);
+    QLabel *smallAppleLabel = new QLabel(saveAppleGameArea);
+    QPixmap smallApplePixmap(":/resource/Apple/Images/APPLE_SMALL.png");
+    if (!smallApplePixmap.isNull()) {
+        smallAppleLabel->setPixmap(smallApplePixmap.scaled(48, 48, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+    smallAppleLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+    smallAppleLabel->move(20, 20);
+    smallAppleLabel->show();
+
+    btnBackToGameSelect = new QPushButton(QString::fromUtf16(u"\u8FD4\u56DE\u6E38\u620F\u9009\u62E9"), pageSaveApple);
+    btnBackToGameSelect->setIcon(QIcon(":/resource/Apple/Images/APPLE_DLG_END.png"));
+    btnBackToGameSelect->setIconSize(QSize(26, 26));
+    btnBackToGameSelect->setMinimumSize(150, 42);
+    btnBackToGameSelect->setStyleSheet("font-size: 12px; padding: 6px;");
     saveAppleLayout->addWidget(btnBackToGameSelect, 0, Qt::AlignCenter);
 
     ui->stackedWidget->addWidget(pageSaveApple);
@@ -308,9 +348,10 @@ void MainWindow::startAppleGame()
         resetAppleGame();
     }
     gameState = GameState::Playing;
-    statusLabel->setText(tr("状态: 游戏中"));
+    statusLabel->setText(QString::fromUtf16(u"\u72B6\u6001: \u6E38\u620F\u4E2D"));
     gameTimer->start(30);
-    spawnTimer->start(800);
+    spawnTimer->start(600);
+    spawnApple();
     appleBgPlayer->play();
 }
 
@@ -318,15 +359,15 @@ void MainWindow::pauseAppleGame()
 {
     if (gameState == GameState::Playing) {
         gameState = GameState::Paused;
-        statusLabel->setText(tr("状态: 暂停"));
+        statusLabel->setText(QString::fromUtf16(u"\u72B6\u6001: \u6682\u505C"));
         gameTimer->stop();
         spawnTimer->stop();
         appleBgPlayer->pause();
     } else if (gameState == GameState::Paused) {
         gameState = GameState::Playing;
-        statusLabel->setText(tr("状态: 游戏中"));
+        statusLabel->setText(QString::fromUtf16(u"\u72B6\u6001: \u6E38\u620F\u4E2D"));
         gameTimer->start(30);
-        spawnTimer->start(800);
+        spawnTimer->start(600);
         appleBgPlayer->play();
     }
 }
@@ -352,7 +393,7 @@ void MainWindow::resetAppleGame()
     apples.clear();
     gameTimer->stop();
     spawnTimer->stop();
-    statusLabel->setText(tr("状态: 未开始"));
+    statusLabel->setText(QString::fromUtf16(u"\u72B6\u6001: \u672A\u5F00\u59CB"));
     updateGameStateLabels();
 }
 
@@ -418,10 +459,10 @@ void MainWindow::spawnApple()
 
 void MainWindow::updateGameStateLabels()
 {
-    scoreLabel->setText(tr("成功: %1").arg(successCount));
-    failLabel->setText(tr("失败: %1").arg(failCount));
+    scoreLabel->setText(QString::fromUtf16(u"\u6210\u529F: %1").arg(successCount));
+    failLabel->setText(QString::fromUtf16(u"\u5931\u8D25: %1").arg(failCount));
     int accuracy = totalInputCount > 0 ? qRound(successCount * 100.0 / totalInputCount) : 0;
-    accuracyLabel->setText(tr("准确率: %1%" ).arg(accuracy));
+    accuracyLabel->setText(QString::fromUtf16(u"\u51C6\u786E\u7387: %1%" ).arg(accuracy));
     if (levelValueLabel) {
         levelValueLabel->setText(QString::number(currentLevel));
     }
@@ -464,8 +505,8 @@ void MainWindow::handleKeyPressForLetter(const QChar &letter)
         gameState = GameState::End;
         gameTimer->stop();
         spawnTimer->stop();
-        statusLabel->setText(tr("状态: 通关!"));
-        QMessageBox::information(this, tr("恭喜"), tr("已达到目标，进入下一关！"));
+        statusLabel->setText(QString::fromUtf16(u"\u72B6\u6001: \u901A\u5173!"));
+        showGameEndDialog(true);
     }
 }
 
@@ -489,8 +530,86 @@ void MainWindow::onGameTimerTimeout()
             failCount++;
             totalInputCount++;
             if (!appleFailSound.isMuted()) appleFailSound.play();
+            if (apples[i].appleLabel) {
+                apples[i].appleLabel->setPixmap(QPixmap(":/resource/Apple/Images/APPLE_BAD.png").scaled(apples[i].appleLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            }
             removeApple(i);
             updateGameStateLabels();
+        }
+    }
+}
+
+void MainWindow::showGameEndDialog(bool success)
+{
+    QDialog dialog(this);
+    dialog.setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+    dialog.setAttribute(Qt::WA_TranslucentBackground);
+    dialog.setModal(true);
+    dialog.resize(420, 280);
+
+    QLabel *background = new QLabel(&dialog);
+    background->setPixmap(QPixmap(":/resource/Apple/Images/APPLE_DLG_BG.png").scaled(dialog.size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
+    background->setGeometry(dialog.rect());
+    background->lower();
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(16);
+
+    QLabel *title = new QLabel(&dialog);
+    title->setText(success ? QString::fromUtf16(u"\u6210\u529F\u901A\u5173\uFF01") : QString::fromUtf16(u"\u5F97\u5230\u5931\u8D25\uFF01"));
+    title->setStyleSheet("color: white; font-size: 24px; font-weight: bold;");
+    title->setAlignment(Qt::AlignCenter);
+    layout->addWidget(title);
+
+    QLabel *message = new QLabel(&dialog);
+    message->setText(success ? QString::fromUtf16(u"\u5DF2\u62A5\u9500\u6240\u6709\u82F9\u679C\uFF0C\u53EF\u4EE5\u8FDB\u5165\u4E0B\u4E00\u5173\uFF01") : QString::fromUtf16(u"\u82F9\u679C\u843D\u5230\u5730\u9762\uFF0C\u5339\u914D\u6CA1\u6709\u6253\u6B63\u786E\u5B57\u6BCD\uFF01"));
+    message->setStyleSheet("color: white; font-size: 16px;");
+    message->setWordWrap(true);
+    message->setAlignment(Qt::AlignCenter);
+    layout->addWidget(message);
+
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(12);
+
+    QPushButton *replayButton = new QPushButton(&dialog);
+    replayButton->setIcon(QIcon(":/resource/Apple/Images/APPLE_DLG_REPLAY.png"));
+    replayButton->setIconSize(QSize(40, 40));
+    replayButton->setToolTip(QString::fromUtf16(u"\u518D\u6765\u4E00\u6B21"));
+    replayButton->setFixedSize(140, 48);
+    buttonLayout->addWidget(replayButton);
+
+    QPushButton *nextButton = new QPushButton(&dialog);
+    nextButton->setIcon(QIcon(":/resource/Apple/Images/APPLE_DLG_NEXT.png"));
+    nextButton->setIconSize(QSize(40, 40));
+    nextButton->setToolTip(QString::fromUtf16(u"\u4E0B\u4E00\u5173"));
+    nextButton->setFixedSize(140, 48);
+    buttonLayout->addWidget(nextButton);
+
+    QPushButton *endButton = new QPushButton(&dialog);
+    endButton->setIcon(QIcon(":/resource/Apple/Images/APPLE_DLG_END.png"));
+    endButton->setIconSize(QSize(40, 40));
+    endButton->setToolTip(QString::fromUtf16(u"\u7ED3\u675F\u6E38\u620F"));
+    endButton->setFixedSize(140, 48);
+    buttonLayout->addWidget(endButton);
+
+    layout->addLayout(buttonLayout);
+
+    connect(replayButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    connect(nextButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    connect(endButton, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        if (!success) {
+            resetAppleGame();
+        }
+        if (success) {
+            levelSlider->setValue(qMin(levelSlider->maximum(), levelSlider->value() + 1));
+            resetAppleGame();
+            startAppleGame();
+        } else {
+            resetAppleGame();
+            startAppleGame();
         }
     }
 }
@@ -506,7 +625,25 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             typeSound.play();
             handleKeyPressForLetter(letter);
         }
+    } else if (ui->stackedWidget->currentWidget() == pageSpaceBattle && !event->text().isEmpty()) {
+        QChar letter = event->text().toUpper().at(0);
+        if (letter.isLetter()) {
+            handleKeyPressForLetterSpace(letter);
+        }
     }
+
+    // 飞船移动
+    if (ui->stackedWidget->currentWidget() == pageSpaceBattle) {
+        int step = 10;
+        QPoint pos = shipLabel->pos();
+        if (event->key() == Qt::Key_Left || event->key() == Qt::Key_A) {
+            pos.setX(qMax(0, pos.x() - step));
+        } else if (event->key() == Qt::Key_Right || event->key() == Qt::Key_D) {
+            pos.setX(qMin(850, pos.x() + step));
+        }
+        shipLabel->move(pos);
+    }
+
     QMainWindow::keyPressEvent(event);
 }
 
@@ -559,7 +696,8 @@ void MainWindow::onBackToGameSelectClicked()
 void MainWindow::onSelectSpaceBattleClicked()
 {
     actionClickSound.play();
-    QMessageBox::information(this, tr("太空大战"), tr("正在进入太空大战游戏页面。"));
+    ui->stackedWidget->addWidget(pageSpaceBattle);
+    ui->stackedWidget->setCurrentWidget(pageSpaceBattle);
 }
 
 void MainWindow::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
@@ -587,11 +725,560 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         QPixmap scaled = saveAppleBackgroundLabel->pixmap(Qt::ReturnByValue).scaled(pageSaveApple->size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
         saveAppleBackgroundLabel->setPixmap(scaled);
     }
+    if (spaceBattleBackgroundLabel && pageSpaceBattle) {
+        spaceBattleBackgroundLabel->setGeometry(0, 0, pageSpaceBattle->width(), pageSpaceBattle->height());
+        QPixmap scaled = spaceBattleBackgroundLabel->pixmap(Qt::ReturnByValue).scaled(pageSpaceBattle->size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+        spaceBattleBackgroundLabel->setPixmap(scaled);
+    }
     if (basketLabel && saveAppleGameArea) {
         int x = saveAppleGameArea->width() - basketLabel->width() - 20;
         int y = saveAppleGameArea->height() - basketLabel->height() - 10;
         basketLabel->move(qMax(0, x), qMax(0, y));
     }
+}
+
+void MainWindow::createSpaceBattlePage()
+{
+    pageSpaceBattle = new QWidget;
+    spaceBattleBackgroundLabel = new QLabel(pageSpaceBattle);
+    spaceBattleBackgroundLabel->setObjectName("spaceBattleBackground");
+    spaceBattleBackgroundLabel->setScaledContents(true);
+    QPixmap spacePixmap(":/resource/Space/Images/SPACE_BACKGROUND.png");
+    if (!spacePixmap.isNull()) {
+        spaceBattleBackgroundLabel->setPixmap(spacePixmap);
+        spaceBattleBackgroundLabel->setGeometry(0, 0, 900, 620);
+    }
+
+    spaceGameArea = new QWidget(pageSpaceBattle);
+    spaceGameArea->setAttribute(Qt::WA_TransparentForMouseEvents);
+    spaceGameArea->setStyleSheet("background: transparent;");
+
+    QVBoxLayout *spaceLayout = new QVBoxLayout(pageSpaceBattle);
+    spaceLayout->setContentsMargins(0, 0, 0, 0);
+    spaceLayout->setSpacing(0);
+
+    QWidget *topPanel = new QWidget(pageSpaceBattle);
+    topPanel->setFixedHeight(100);
+    topPanel->setStyleSheet("background: rgba(0, 0, 0, 0.45);");
+    QHBoxLayout *topLayout = new QHBoxLayout(topPanel);
+    topLayout->setContentsMargins(14, 10, 14, 10);
+    topLayout->setSpacing(10);
+
+    spaceStatusLabel = new QLabel(QString::fromUtf16(u"\u72B6\u6001: \u672A\u5F00\u59CB"), topPanel);
+    spaceStatusLabel->setStyleSheet("color: white; font-size: 16px;");
+    spaceScoreLabel = new QLabel(QString::fromUtf16(u"\u5F97\u5206: 0"), topPanel);
+    spaceScoreLabel->setStyleSheet("color: white; font-size: 14px;");
+    spaceLifeLabel = new QLabel(QString::fromUtf16(u"\u751F\u547D\u503C: 18"), topPanel);
+    spaceLifeLabel->setStyleSheet("color: white; font-size: 14px;");
+    spaceTimeLabel = new QLabel(QString::fromUtf16(u"\u65F6\u95F4: 0"), topPanel);
+    spaceTimeLabel->setStyleSheet("color: white; font-size: 14px;");
+
+    topLayout->addWidget(spaceStatusLabel);
+    topLayout->addStretch();
+    topLayout->addWidget(spaceScoreLabel);
+    topLayout->addWidget(spaceLifeLabel);
+    topLayout->addWidget(spaceTimeLabel);
+
+    QWidget *controlPanel = new QWidget(pageSpaceBattle);
+    controlPanel->setFixedHeight(90);
+    controlPanel->setStyleSheet("background: rgba(0, 0, 0, 0.45);");
+    QHBoxLayout *controlLayout = new QHBoxLayout(controlPanel);
+    controlLayout->setContentsMargins(10, 5, 10, 5);
+    controlLayout->setSpacing(10);
+
+    QLabel *levelLabel = new QLabel(QString::fromUtf16(u"\u7EA7\u522B:"), controlPanel);
+    levelLabel->setStyleSheet("color: white; font-size: 12px;");
+    spaceLevelValueLabel = new QLabel("1", controlPanel);
+    spaceLevelValueLabel->setStyleSheet("color: white; font-size: 12px;");
+
+    QLabel *enemyCountLabel = new QLabel(QString::fromUtf16(u"\u6570\u91CF:"), controlPanel);
+    enemyCountLabel->setStyleSheet("color: white; font-size: 12px;");
+    spaceEnemyCountValueLabel = new QLabel("1", controlPanel);
+    spaceEnemyCountValueLabel->setStyleSheet("color: white; font-size: 12px;");
+
+    QLabel *currentCountLabel = new QLabel(QString::fromUtf16(u"\u5F53\u524D:"), controlPanel);
+    currentCountLabel->setStyleSheet("color: white; font-size: 12px;");
+    spaceCurrentCountLabel = new QLabel("0", controlPanel);
+    spaceCurrentCountLabel->setStyleSheet("color: white; font-size: 12px;");
+
+    spaceRewardModeToggle = new QCheckBox(QString::fromUtf16(u"\u5956\u52B1\u6A21\u5F0F"), controlPanel);
+    spaceRewardModeToggle->setStyleSheet("color: white; font-size: 12px;");
+
+    controlLayout->addWidget(levelLabel);
+    controlLayout->addWidget(spaceLevelValueLabel);
+    controlLayout->addWidget(enemyCountLabel);
+    controlLayout->addWidget(spaceEnemyCountValueLabel);
+    controlLayout->addWidget(currentCountLabel);
+    controlLayout->addWidget(spaceCurrentCountLabel);
+    controlLayout->addStretch();
+    controlLayout->addWidget(spaceRewardModeToggle);
+
+    QWidget *buttonPanel = new QWidget(pageSpaceBattle);
+    buttonPanel->setFixedHeight(60);
+    buttonPanel->setStyleSheet("background: rgba(0, 0, 0, 0.45);");
+    QHBoxLayout *buttonLayout = new QHBoxLayout(buttonPanel);
+    buttonLayout->setContentsMargins(10, 5, 10, 5);
+    buttonLayout->setSpacing(10);
+
+    btnBackToGameSelectSpace = new QPushButton(QString::fromUtf16(u"\u8FD4\u56DE"), buttonPanel);
+    btnBackToGameSelectSpace->setIcon(QIcon(":/resource/Common/Images/PUBLIC_EXIT.png"));
+    btnBackToGameSelectSpace->setIconSize(QSize(24, 24));
+    btnBackToGameSelectSpace->setStyleSheet("QPushButton { background: rgba(0, 0, 0, 0.45); color: white; border: 1px solid white; padding: 5px; } QPushButton:hover { background: rgba(255, 255, 255, 0.2); }");
+    connect(btnBackToGameSelectSpace, &QPushButton::clicked, this, &MainWindow::onBackToGameSelectClicked);
+
+    btnStartSpaceGame = new QPushButton(QString::fromUtf16(u"\u5F00\u59CB"), buttonPanel);
+    btnStartSpaceGame->setIcon(QIcon(":/resource/Common/Images/PUBLIC_START.png"));
+    btnStartSpaceGame->setIconSize(QSize(24, 24));
+    btnStartSpaceGame->setStyleSheet("QPushButton { background: rgba(0, 0, 0, 0.45); color: white; border: 1px solid white; padding: 5px; } QPushButton:hover { background: rgba(255, 255, 255, 0.2); }");
+    connect(btnStartSpaceGame, &QPushButton::clicked, this, &MainWindow::startSpaceBattle);
+
+    btnPauseSpaceGame = new QPushButton(QString::fromUtf16(u"\u6682\u505C"), buttonPanel);
+    btnPauseSpaceGame->setIcon(QIcon(":/resource/Common/Images/PUBLIC_PAUSE.png"));
+    btnPauseSpaceGame->setIconSize(QSize(24, 24));
+    btnPauseSpaceGame->setStyleSheet("QPushButton { background: rgba(0, 0, 0, 0.45); color: white; border: 1px solid white; padding: 5px; } QPushButton:hover { background: rgba(255, 255, 255, 0.2); }");
+    connect(btnPauseSpaceGame, &QPushButton::clicked, this, &MainWindow::pauseSpaceBattle);
+
+    btnResetSpaceGame = new QPushButton(QString::fromUtf16(u"\u91CD\u7F6E"), buttonPanel);
+    btnResetSpaceGame->setIcon(QIcon(":/resource/Common/Images/PUBLIC_SETUP.png"));
+    btnResetSpaceGame->setIconSize(QSize(24, 24));
+    btnResetSpaceGame->setStyleSheet("QPushButton { background: rgba(0, 0, 0, 0.45); color: white; border: 1px solid white; padding: 5px; } QPushButton:hover { background: rgba(255, 255, 255, 0.2); }");
+    connect(btnResetSpaceGame, &QPushButton::clicked, this, &MainWindow::resetSpaceBattle);
+
+    buttonLayout->addWidget(btnBackToGameSelectSpace);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(btnStartSpaceGame);
+    buttonLayout->addWidget(btnPauseSpaceGame);
+    buttonLayout->addWidget(btnResetSpaceGame);
+
+    spaceLayout->addWidget(topPanel);
+    spaceLayout->addWidget(spaceGameArea, 1);
+    spaceLayout->addWidget(controlPanel);
+    spaceLayout->addWidget(buttonPanel);
+
+    // 创建玩家飞船
+    shipLabel = new QLabel(spaceGameArea);
+    QPixmap shipPixmap(":/resource/Space/Images/SPACE_SHIP.png");
+    if (!shipPixmap.isNull()) {
+        shipLabel->setPixmap(shipPixmap);
+        shipLabel->setScaledContents(true);
+        shipLabel->setFixedSize(50, 50);
+        shipLabel->move(425, 520); // 底部中央
+    }
+
+    // 初始化设置面板（隐藏）
+    QWidget *settingsPanel = new QWidget(pageSpaceBattle);
+    settingsPanel->setFixedSize(400, 300);
+    settingsPanel->setStyleSheet("background: rgba(0, 0, 0, 0.8); border: 2px solid white;");
+    QVBoxLayout *settingsLayout = new QVBoxLayout(settingsPanel);
+    settingsLayout->setContentsMargins(20, 20, 20, 20);
+    settingsLayout->setSpacing(10);
+
+    QLabel *settingsTitle = new QLabel(QString::fromUtf16(u"\u8BBE\u7F6E"), settingsPanel);
+    settingsTitle->setStyleSheet("color: white; font-size: 18px; font-weight: bold;");
+    settingsTitle->setAlignment(Qt::AlignCenter);
+
+    QLabel *enemyCountLabel2 = new QLabel(QString::fromUtf16(u"\u654C\u673A\u6570\u91CF (1-10):"), settingsPanel);
+    enemyCountLabel2->setStyleSheet("color: white;");
+    spaceEnemyCountSlider = new QSlider(Qt::Horizontal, settingsPanel);
+    spaceEnemyCountSlider->setRange(1, 10);
+    spaceEnemyCountSlider->setValue(1);
+    spaceEnemyCountSlider->setStyleSheet("QSlider::groove:horizontal { background: rgba(255, 255, 255, 0.3); height: 8px; } QSlider::handle:horizontal { background: white; width: 18px; margin: -5px 0; }");
+
+    QLabel *enemySpeedLabel = new QLabel(QString::fromUtf16(u"\u654C\u673A\u901F\u5EA6 (1-10):"), settingsPanel);
+    enemySpeedLabel->setStyleSheet("color: white;");
+    spaceEnemySpeedSlider = new QSlider(Qt::Horizontal, settingsPanel);
+    spaceEnemySpeedSlider->setRange(1, 10);
+    spaceEnemySpeedSlider->setValue(1);
+    spaceEnemySpeedSlider->setStyleSheet("QSlider::groove:horizontal { background: rgba(255, 255, 255, 0.3); height: 8px; } QSlider::handle:horizontal { background: white; width: 18px; margin: -5px 0; }");
+
+    QLabel *upgradeIntervalLabel = new QLabel(QString::fromUtf16(u"\u5347\u7EA7\u95F4\u9694 (\u79D2):"), settingsPanel);
+    upgradeIntervalLabel->setStyleSheet("color: white;");
+    spaceUpgradeIntervalSlider = new QSlider(Qt::Horizontal, settingsPanel);
+    spaceUpgradeIntervalSlider->setRange(10, 120);
+    spaceUpgradeIntervalSlider->setValue(60);
+    spaceUpgradeIntervalSlider->setStyleSheet("QSlider::groove:horizontal { background: rgba(255, 255, 255, 0.3); height: 8px; } QSlider::handle:horizontal { background: white; width: 18px; margin: -5px 0; }");
+
+    QPushButton *settingsOkBtn = new QPushButton(QString::fromUtf16(u"\u786E\u5B9A"), settingsPanel);
+    settingsOkBtn->setStyleSheet("QPushButton { background: rgba(0, 0, 0, 0.8); color: white; border: 1px solid white; padding: 5px; } QPushButton:hover { background: rgba(255, 255, 255, 0.2); }");
+    connect(settingsOkBtn, &QPushButton::clicked, [this, settingsPanel]() { settingsPanel->hide(); });
+
+    settingsLayout->addWidget(settingsTitle);
+    settingsLayout->addWidget(enemyCountLabel2);
+    settingsLayout->addWidget(spaceEnemyCountSlider);
+    settingsLayout->addWidget(enemySpeedLabel);
+    settingsLayout->addWidget(spaceEnemySpeedSlider);
+    settingsLayout->addWidget(upgradeIntervalLabel);
+    settingsLayout->addWidget(spaceUpgradeIntervalSlider);
+    settingsLayout->addStretch();
+    settingsLayout->addWidget(settingsOkBtn);
+
+    settingsPanel->move((900 - 400) / 2, (620 - 300) / 2);
+    settingsPanel->hide();
+
+    // 连接设置按钮（假设有一个设置按钮，这里用 btnResetSpaceGame 作为示例）
+    connect(btnResetSpaceGame, &QPushButton::clicked, [settingsPanel]() { settingsPanel->show(); });
+
+    // 初始化定时器
+    spaceGameTimer = new QTimer(this);
+    connect(spaceGameTimer, &QTimer::timeout, this, &MainWindow::onSpaceGameTimerTimeout);
+
+    spaceSpawnTimer = new QTimer(this);
+    connect(spaceSpawnTimer, &QTimer::timeout, this, &MainWindow::onSpaceSpawnTimerTimeout);
+
+    spaceRewardTimer = new QTimer(this);
+    connect(spaceRewardTimer, &QTimer::timeout, this, &MainWindow::onSpaceRewardTimerTimeout);
+
+    spaceUpgradeTimer = new QTimer(this);
+    connect(spaceUpgradeTimer, &QTimer::timeout, this, &MainWindow::onSpaceUpgradeTimerTimeout);
+
+    // 初始化游戏状态
+    resetSpaceBattle();
+}
+
+void MainWindow::startSpaceBattle()
+{
+    if (spaceGameState == GameState::Playing) return;
+
+    spaceGameState = GameState::Playing;
+    spaceBgPlayer->play();
+    spaceGameTimer->start(50); // 20 FPS
+    spaceSpawnTimer->start(2000); // 每2秒生成一个敌机
+    if (spaceRewardMode) {
+        spaceRewardTimer->start(10000); // 每10秒生成奖励单词
+    }
+    spaceUpgradeTimer->start(spaceUpgradeInterval * 1000);
+    updateSpaceGameStateLabels();
+}
+
+void MainWindow::pauseSpaceBattle()
+{
+    if (spaceGameState != GameState::Playing) return;
+
+    spaceGameState = GameState::Paused;
+    spaceBgPlayer->pause();
+    spaceGameTimer->stop();
+    spaceSpawnTimer->stop();
+    spaceRewardTimer->stop();
+    spaceUpgradeTimer->stop();
+    updateSpaceGameStateLabels();
+}
+
+void MainWindow::resetSpaceBattle()
+{
+    spaceGameState = GameState::Idle;
+    spaceScore = 0;
+    spaceLife = 18;
+    spaceTime = 0;
+    spaceMaxEnemyCount = spaceEnemyCountSlider->value();
+    spaceEnemySpeed = spaceEnemySpeedSlider->value();
+    spaceUpgradeInterval = spaceUpgradeIntervalSlider->value();
+    spaceRewardMode = spaceRewardModeToggle->isChecked();
+
+    // 清除所有敌机、子弹、奖励单词
+    for (auto &enemy : enemies) {
+        if (enemy.enemyLabel) enemy.enemyLabel->deleteLater();
+        if (enemy.letterLabel) enemy.letterLabel->deleteLater();
+    }
+    enemies.clear();
+
+    for (auto &bullet : bullets) {
+        if (bullet.bulletLabel) bullet.bulletLabel->deleteLater();
+    }
+    bullets.clear();
+
+    for (auto &word : rewardWords) {
+        if (word.wordLabel) word.wordLabel->deleteLater();
+    }
+    rewardWords.clear();
+
+    // 重置飞船位置
+    if (shipLabel) shipLabel->move(425, 520);
+
+    spaceBgPlayer->stop();
+    spaceGameTimer->stop();
+    spaceSpawnTimer->stop();
+    spaceRewardTimer->stop();
+    spaceUpgradeTimer->stop();
+
+    updateSpaceGameStateLabels();
+}
+
+void MainWindow::spawnEnemy()
+{
+    if (enemies.size() >= spaceMaxEnemyCount) return;
+
+    EnemyItem enemy;
+    enemy.active = true;
+    enemy.speed = spaceEnemySpeed;
+    enemy.position = QPoint(QRandomGenerator::global()->bounded(850), -50); // 随机X，Y在屏幕外
+
+    // 随机字母，不重复
+    QChar letter;
+    do {
+        letter = QChar('A' + QRandomGenerator::global()->bounded(26));
+    } while (std::any_of(enemies.begin(), enemies.end(), [letter](const EnemyItem &e) { return e.letter == letter; }));
+
+    enemy.letter = letter;
+
+    enemy.enemyLabel = new QLabel(spaceGameArea);
+    QPixmap enemyPixmap(":/resource/Space/Images/SPACE_ENEMY_0.png");
+    if (!enemyPixmap.isNull()) {
+        enemy.enemyLabel->setPixmap(enemyPixmap);
+        enemy.enemyLabel->setScaledContents(true);
+        enemy.enemyLabel->setFixedSize(40, 40);
+        enemy.enemyLabel->move(enemy.position);
+        enemy.enemyLabel->show();
+    }
+
+    enemy.letterLabel = new QLabel(spaceGameArea);
+    enemy.letterLabel->setText(QString(enemy.letter));
+    enemy.letterLabel->setStyleSheet("color: white; font-size: 16px; font-weight: bold; background: transparent;");
+    enemy.letterLabel->move(enemy.position.x() + 15, enemy.position.y() + 10);
+    enemy.letterLabel->show();
+
+    enemies.append(enemy);
+    spacePlaneOutSound.play();
+}
+
+void MainWindow::spawnBullet(const QPoint &start, const QPoint &target)
+{
+    BulletItem bullet;
+    bullet.active = true;
+    bullet.position = start;
+    bullet.target = target;
+
+    bullet.bulletLabel = new QLabel(spaceGameArea);
+    QPixmap bulletPixmap(":/resource/Space/Images/SPACE_BOMB.png");
+    if (!bulletPixmap.isNull()) {
+        bullet.bulletLabel->setPixmap(bulletPixmap);
+        bullet.bulletLabel->setScaledContents(true);
+        bullet.bulletLabel->setFixedSize(10, 10);
+        bullet.bulletLabel->move(bullet.position);
+        bullet.bulletLabel->show();
+    }
+
+    bullets.append(bullet);
+    spaceShootSound.play();
+}
+
+void MainWindow::spawnRewardWord()
+{
+    RewardWord word;
+    word.active = true;
+    word.word = getRandomWord();
+    word.position = QPoint(-200, QRandomGenerator::global()->bounded(400) + 100); // 从左侧进入
+
+    word.wordLabel = new QLabel(spaceGameArea);
+    word.wordLabel->setText(word.word);
+    word.wordLabel->setStyleSheet("color: yellow; font-size: 20px; font-weight: bold; background: transparent;");
+    word.wordLabel->move(word.position);
+    word.wordLabel->show();
+
+    rewardWords.append(word);
+    spaceWordOutSound.play();
+}
+
+void MainWindow::updateSpaceGameStateLabels()
+{
+    QString statusText;
+    switch (spaceGameState) {
+    case GameState::Idle: statusText = QString::fromUtf16(u"\u672A\u5F00\u59CB"); break;
+    case GameState::Playing: statusText = QString::fromUtf16(u"\u6B63\u5728\u6E38\u620F"); break;
+    case GameState::Paused: statusText = QString::fromUtf16(u"\u6682\u505C"); break;
+    case GameState::End: statusText = QString::fromUtf16(u"\u7ED3\u675F"); break;
+    }
+    spaceStatusLabel->setText(QString::fromUtf16(u"\u72B6\u6001: %1").arg(statusText));
+    spaceScoreLabel->setText(QString::fromUtf16(u"\u5F97\u5206: %1").arg(spaceScore));
+    spaceLifeLabel->setText(QString::fromUtf16(u"\u751F\u547D\u503C: %1").arg(spaceLife));
+    spaceTimeLabel->setText(QString::fromUtf16(u"\u65F6\u95F4: %1").arg(spaceTime / 20)); // 假设20 FPS
+    spaceLevelValueLabel->setText(QString::number(spaceEnemySpeed));
+    spaceEnemyCountValueLabel->setText(QString::number(spaceMaxEnemyCount));
+    spaceCurrentCountLabel->setText(QString::number(enemies.size()));
+}
+
+void MainWindow::removeEnemy(int index)
+{
+    if (index < 0 || index >= enemies.size()) return;
+
+    auto &enemy = enemies[index];
+    if (enemy.enemyLabel) enemy.enemyLabel->deleteLater();
+    if (enemy.letterLabel) enemy.letterLabel->deleteLater();
+    enemies.removeAt(index);
+}
+
+void MainWindow::removeBullet(int index)
+{
+    if (index < 0 || index >= bullets.size()) return;
+
+    auto &bullet = bullets[index];
+    if (bullet.bulletLabel) bullet.bulletLabel->deleteLater();
+    bullets.removeAt(index);
+}
+
+void MainWindow::removeRewardWord(int index)
+{
+    if (index < 0 || index >= rewardWords.size()) return;
+
+    auto &word = rewardWords[index];
+    if (word.wordLabel) word.wordLabel->deleteLater();
+    rewardWords.removeAt(index);
+}
+
+void MainWindow::handleKeyPressForLetterSpace(const QChar &letter)
+{
+    // 查找匹配的敌机
+    for (int i = 0; i < enemies.size(); ++i) {
+        if (enemies[i].letter == letter) {
+            // 发射子弹
+            QPoint start = shipLabel->pos() + QPoint(25, 0); // 飞船中央
+            QPoint target = enemies[i].position + QPoint(20, 20); // 敌机中央
+            spawnBullet(start, target);
+
+            // 移除敌机
+            removeEnemy(i);
+            spaceScore += 10;
+            spaceBlastSound.play();
+            updateSpaceGameStateLabels();
+            return;
+        }
+    }
+
+    // 检查奖励单词
+    for (int i = 0; i < rewardWords.size(); ++i) {
+        if (rewardWords[i].word.startsWith(letter, Qt::CaseInsensitive)) {
+            // 移除单词首字母
+            rewardWords[i].word = rewardWords[i].word.mid(1);
+            rewardWords[i].wordLabel->setText(rewardWords[i].word);
+            if (rewardWords[i].word.isEmpty()) {
+                // 单词完成，恢复生命
+                spaceLife = 18;
+                removeRewardWord(i);
+                updateSpaceGameStateLabels();
+            }
+            return;
+        }
+    }
+}
+
+void MainWindow::onSpaceGameTimerTimeout()
+{
+    spaceTime++;
+
+    // 更新敌机位置
+    for (int i = 0; i < enemies.size(); ++i) {
+        auto &enemy = enemies[i];
+        enemy.position.setY(enemy.position.y() + enemy.speed);
+        enemy.enemyLabel->move(enemy.position);
+        enemy.letterLabel->move(enemy.position.x() + 15, enemy.position.y() + 10);
+
+        // 检查碰撞或落底
+        if (enemy.position.y() > 570 || shipLabel->geometry().intersects(QRect(enemy.position, QSize(40, 40)))) {
+            spaceLife--;
+            removeEnemy(i);
+            i--; // 调整索引
+            if (spaceLife <= 0) {
+                showSpaceGameEndDialog(false);
+                return;
+            }
+        }
+    }
+
+    // 更新子弹位置
+    for (int i = 0; i < bullets.size(); ++i) {
+        auto &bullet = bullets[i];
+        // 简单追踪逻辑：向目标移动
+        QPoint dir = bullet.target - bullet.position;
+        if (dir.manhattanLength() < 5) {
+            // 到达目标，移除
+            removeBullet(i);
+            i--;
+            continue;
+        }
+        dir = dir / dir.manhattanLength() * 10; // 速度
+        bullet.position += dir;
+        bullet.bulletLabel->move(bullet.position);
+    }
+
+    // 更新奖励单词位置
+    for (int i = 0; i < rewardWords.size(); ++i) {
+        auto &word = rewardWords[i];
+        word.position.setX(word.position.x() + 2); // 向右移动
+        word.wordLabel->move(word.position);
+        if (word.position.x() > 900) {
+            removeRewardWord(i);
+            i--;
+        }
+    }
+
+    updateSpaceGameStateLabels();
+}
+
+void MainWindow::onSpaceSpawnTimerTimeout()
+{
+    spawnEnemy();
+}
+
+void MainWindow::onSpaceRewardTimerTimeout()
+{
+    spawnRewardWord();
+}
+
+void MainWindow::onSpaceUpgradeTimerTimeout()
+{
+    spaceEnemySpeed++;
+    spaceMaxEnemyCount++;
+    spaceUpgradeSound.play();
+    updateSpaceGameStateLabels();
+}
+
+void MainWindow::showSpaceGameEndDialog(bool success)
+{
+    spaceGameState = GameState::End;
+    spaceBgPlayer->stop();
+    spaceGameTimer->stop();
+    spaceSpawnTimer->stop();
+    spaceRewardTimer->stop();
+    spaceUpgradeTimer->stop();
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(success ? QString::fromUtf16(u"\u80DC\u5229") : QString::fromUtf16(u"\u5931\u8D25"));
+    dialog.setFixedSize(300, 200);
+    dialog.setStyleSheet("background: rgba(0, 0, 0, 0.8); color: white;");
+
+    QVBoxLayout layout(&dialog);
+    QLabel titleLabel(success ? QString::fromUtf16(u"\u606D\u559C\u4F60\u80DC\u5229\u4E86\uFF01") : QString::fromUtf16(u"\u5F88\u9057\u61BE\uFF0C\u4F60\u5931\u8D25\u4E86\u3002"), &dialog);
+    titleLabel.setAlignment(Qt::AlignCenter);
+    titleLabel.setStyleSheet("font-size: 18px; font-weight: bold;");
+
+    QLabel scoreLabel(QString::fromUtf16(u"\u6700\u7EC8\u5F97\u5206: %1").arg(spaceScore), &dialog);
+    scoreLabel.setAlignment(Qt::AlignCenter);
+
+    QPushButton replayBtn(QString::fromUtf16(u"\u91CD\u65B0\u6E38\u620F"), &dialog);
+    replayBtn.setStyleSheet("QPushButton { background: rgba(0, 0, 0, 0.8); color: white; border: 1px solid white; padding: 5px; } QPushButton:hover { background: rgba(255, 255, 255, 0.2); }");
+    connect(&replayBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    QPushButton exitBtn(QString::fromUtf16(u"\u9000\u51FA"), &dialog);
+    exitBtn.setStyleSheet("QPushButton { background: rgba(0, 0, 0, 0.8); color: white; border: 1px solid white; padding: 5px; } QPushButton:hover { background: rgba(255, 255, 255, 0.2); }");
+    connect(&exitBtn, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    layout.addWidget(&titleLabel);
+    layout.addWidget(&scoreLabel);
+    layout.addStretch();
+    layout.addWidget(&replayBtn);
+    layout.addWidget(&exitBtn);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        resetSpaceBattle();
+        startSpaceBattle();
+    } else {
+        onBackToGameSelectClicked();
+    }
+}
+
+QString MainWindow::getRandomWord()
+{
+    // 模拟API调用，这里使用本地词库
+    return localWords.at(QRandomGenerator::global()->bounded(localWords.size()));
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)

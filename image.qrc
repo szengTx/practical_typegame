@@ -33,5 +33,31 @@
         <file>resource/Apple/Images/APPLE_SMALL.png</file>
         <file>resource/Apple/Sounds/APPLE_BG.wav</file>
         <file>resource/Apple/Sounds/APPLE_IN.wav</file>
+        <file>resource/Space/Images/SPACE_BACKGROUND.png</file>
+        <file>resource/Space/Images/SPACE_BOMB.png</file>
+        <file>resource/Space/Images/SPACE_CAPTION_BACK.png</file>
+        <file>resource/Space/Images/SPACE_ENEMY_0.png</file>
+        <file>resource/Space/Images/SPACE_ENEMY_4.png</file>
+        <file>resource/Space/Images/SPACE_EXIT.png</file>
+        <file>resource/Space/Images/SPACE_EXPLOSION_0.png</file>
+        <file>resource/Space/Images/SPACE_HISCORE.png</file>
+        <file>resource/Space/Images/SPACE_HISCORE_BG.png</file>
+        <file>resource/Space/Images/SPACE_LABEL_LIFE.png</file>
+        <file>resource/Space/Images/SPACE_LABEL_SCORE.png</file>
+        <file>resource/Space/Images/SPACE_LABEL_TIME.png</file>
+        <file>resource/Space/Images/SPACE_LIFE.png</file>
+        <file>resource/Space/Images/SPACE_LIFE_OVER.png</file>
+        <file>resource/Space/Images/SPACE_MAINMENU_BG.png</file>
+        <file>resource/Space/Images/SPACE_OPTION.png</file>
+        <file>resource/Space/Images/SPACE_RETURN.png</file>
+        <file>resource/Space/Images/SPACE_SHIP.png</file>
+        <file>resource/Space/Images/SPACE_STARS.png</file>
+        <file>resource/Space/Images/SPACE_START.png</file>
+        <file>resource/Space/Sounds/SPACE_BG.wav</file>
+        <file>resource/Space/Sounds/SPACE_BLAST.wav</file>
+        <file>resource/Space/Sounds/SPACE_PLANEOUT.wav</file>
+        <file>resource/Space/Sounds/SPACE_SHOOT.wav</file>
+        <file>resource/Space/Sounds/SPACE_WORDOUT.wav</file>
+        <file>resource/Space/Sounds/UPGRADE.wav</file>
     </qresource>
 </RCC>
