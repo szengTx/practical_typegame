@@ -59,6 +59,7 @@ private:
     };
 
     struct EnemyItem {
+        int id;
         QLabel *enemyLabel;
         QLabel *letterLabel;
         QChar letter;
@@ -71,6 +72,7 @@ private:
         QLabel *bulletLabel;
         QPoint position;
         QPoint target;
+        int targetEnemyId;
         bool active;
     };
 
@@ -165,6 +167,8 @@ private:
     int spaceEnemySpeed;
     int spaceUpgradeInterval;
     bool spaceRewardMode;
+    bool shipMovingRight;
+    int nextEnemyId;
     QStringList localWords; // for reward mode fallback
 
     void createSpaceBattlePage();

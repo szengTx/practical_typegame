@@ -15,6 +15,7 @@
 #include <QCheckBox>
 #include <QLayout>
 #include <QStringList>
+#include <cmath>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -632,18 +633,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         }
     }
 
-    // 飞船移动
-    if (ui->stackedWidget->currentWidget() == pageSpaceBattle) {
-        int step = 10;
-        QPoint pos = shipLabel->pos();
-        if (event->key() == Qt::Key_Left || event->key() == Qt::Key_A) {
-            pos.setX(qMax(0, pos.x() - step));
-        } else if (event->key() == Qt::Key_Right || event->key() == Qt::Key_D) {
-            pos.setX(qMin(850, pos.x() + step));
-        }
-        shipLabel->move(pos);
-    }
-
     QMainWindow::keyPressEvent(event);
 }
 
@@ -973,6 +962,8 @@ void MainWindow::resetSpaceBattle()
     spaceEnemySpeed = spaceEnemySpeedSlider->value();
     spaceUpgradeInterval = spaceUpgradeIntervalSlider->value();
     spaceRewardMode = spaceRewardModeToggle->isChecked();
+    shipMovingRight = true;
+    nextEnemyId = 0;
 
     // 清除所有敌机、子弹、奖励单词
     for (auto &enemy : enemies) {
@@ -1008,6 +999,7 @@ void MainWindow::spawnEnemy()
     if (enemies.size() >= spaceMaxEnemyCount) return;
 
     EnemyItem enemy;
+    enemy.id = nextEnemyId++;
     enemy.active = true;
     enemy.speed = spaceEnemySpeed;
     enemy.position = QPoint(QRandomGenerator::global()->bounded(850), -50); // 随机X，Y在屏幕外
@@ -1046,6 +1038,7 @@ void MainWindow::spawnBullet(const QPoint &start, const QPoint &target)
     bullet.active = true;
     bullet.position = start;
     bullet.target = target;
+    bullet.targetEnemyId = -1;
 
     bullet.bulletLabel = new QLabel(spaceGameArea);
     QPixmap bulletPixmap(":/resource/Space/Images/SPACE_BOMB.png");
@@ -1126,19 +1119,30 @@ void MainWindow::removeRewardWord(int index)
 
 void MainWindow::handleKeyPressForLetterSpace(const QChar &letter)
 {
-    // 查找匹配的敌机
-    for (int i = 0; i < enemies.size(); ++i) {
-        if (enemies[i].letter == letter) {
-            // 发射子弹
-            QPoint start = shipLabel->pos() + QPoint(25, 0); // 飞船中央
-            QPoint target = enemies[i].position + QPoint(20, 20); // 敌机中央
-            spawnBullet(start, target);
+    if (spaceGameState != GameState::Playing) return;
 
-            // 移除敌机
-            removeEnemy(i);
-            spaceScore += 10;
-            spaceBlastSound.play();
-            updateSpaceGameStateLabels();
+    // 发射子弹瞄准匹配敌机，不直接移除敌机
+    for (const EnemyItem &enemy : qAsConst(enemies)) {
+        if (enemy.active && enemy.letter == letter) {
+            QPoint start = shipLabel->pos() + QPoint(shipLabel->width() / 2 - 5, 0); // 飞船顶部中央
+            QPoint target = enemy.position + QPoint(enemy.enemyLabel->width() / 2, enemy.enemyLabel->height() / 2);
+            BulletItem bullet;
+            bullet.active = true;
+            bullet.position = start;
+            bullet.target = target;
+            bullet.targetEnemyId = enemy.id;
+
+            bullet.bulletLabel = new QLabel(spaceGameArea);
+            QPixmap bulletPixmap(":/resource/Space/Images/SPACE_BOMB.png");
+            if (!bulletPixmap.isNull()) {
+                bullet.bulletLabel->setPixmap(bulletPixmap);
+                bullet.bulletLabel->setScaledContents(true);
+                bullet.bulletLabel->setFixedSize(10, 10);
+                bullet.bulletLabel->move(bullet.position);
+                bullet.bulletLabel->show();
+            }
+            bullets.append(bullet);
+            spaceShootSound.play();
             return;
         }
     }
@@ -1184,29 +1188,79 @@ void MainWindow::onSpaceGameTimerTimeout()
     }
 
     // 更新子弹位置
-    for (int i = 0; i < bullets.size(); ++i) {
+    for (int i = bullets.size() - 1; i >= 0; --i) {
         auto &bullet = bullets[i];
-        // 简单追踪逻辑：向目标移动
-        QPoint dir = bullet.target - bullet.position;
-        if (dir.manhattanLength() < 5) {
-            // 到达目标，移除
+
+        QPoint currentTarget = bullet.target;
+        if (bullet.targetEnemyId >= 0) {
+            for (const EnemyItem &enemy : qAsConst(enemies)) {
+                if (enemy.active && enemy.id == bullet.targetEnemyId) {
+                    currentTarget = enemy.position + QPoint(enemy.enemyLabel->width() / 2, enemy.enemyLabel->height() / 2);
+                    break;
+                }
+            }
+        }
+
+        QPoint dir = currentTarget - bullet.position;
+        int distance = int(std::sqrt(double(dir.x() * dir.x() + dir.y() * dir.y())));
+        if (distance < 5) {
             removeBullet(i);
-            i--;
             continue;
         }
-        dir = dir / dir.manhattanLength() * 10; // 速度
-        bullet.position += dir;
+        QPointF unitDir(dir.x() / qreal(distance), dir.y() / qreal(distance));
+        QPointF nextPos = QPointF(bullet.position) + unitDir * 10.0;
+        bullet.position = QPoint(qRound(nextPos.x()), qRound(nextPos.y()));
         bullet.bulletLabel->move(bullet.position);
+
+        QRect bulletRect(bullet.bulletLabel->geometry());
+        bool hit = false;
+        for (int j = enemies.size() - 1; j >= 0; --j) {
+            auto &enemy = enemies[j];
+            if (!enemy.active) continue;
+            QRect enemyRect(enemy.enemyLabel->geometry());
+            if (bulletRect.intersects(enemyRect)) {
+                spaceScore += 10;
+                spaceBlastSound.play();
+                removeBullet(i);
+                removeEnemy(j);
+                hit = true;
+                break;
+            }
+        }
+        if (hit) {
+            continue;
+        }
+
+        if (bullet.position.x() < 0 || bullet.position.x() > spaceGameArea->width() || bullet.position.y() < 0 || bullet.position.y() > spaceGameArea->height()) {
+            removeBullet(i);
+        }
     }
 
+    // 自动飞船左右来回移动
+    QPoint shipPos = shipLabel->pos();
+    int shipStep = 6;
+    if (shipMovingRight) {
+        shipPos.setX(shipPos.x() + shipStep);
+        if (shipPos.x() >= spaceGameArea->width() - shipLabel->width()) {
+            shipPos.setX(spaceGameArea->width() - shipLabel->width());
+            shipMovingRight = false;
+        }
+    } else {
+        shipPos.setX(shipPos.x() - shipStep);
+        if (shipPos.x() <= 0) {
+            shipPos.setX(0);
+            shipMovingRight = true;
+        }
+    }
+    shipLabel->move(shipPos);
+
     // 更新奖励单词位置
-    for (int i = 0; i < rewardWords.size(); ++i) {
+    for (int i = rewardWords.size() - 1; i >= 0; --i) {
         auto &word = rewardWords[i];
         word.position.setX(word.position.x() + 2); // 向右移动
         word.wordLabel->move(word.position);
         if (word.position.x() > 900) {
             removeRewardWord(i);
-            i--;
         }
     }
 
