@@ -70,8 +70,8 @@ private:
 
     struct BulletItem {
         QLabel *bulletLabel;
-        QPoint position;
-        QPoint target;
+        QPointF position;
+        QPointF target;
         int targetEnemyId;
         bool active;
     };
@@ -176,7 +176,7 @@ private:
     void pauseSpaceBattle();
     void resetSpaceBattle();
     void spawnEnemy();
-    void spawnBullet(const QPoint &start, const QPoint &target);
+    void spawnBullet(const QPoint &start, const QPoint &target, int targetEnemyId = -1);
     void spawnRewardWord();
     void updateSpaceGameStateLabels();
     void removeEnemy(int index);
@@ -188,6 +188,7 @@ private:
     void onSpaceRewardTimerTimeout();
     void onSpaceUpgradeTimerTimeout();
     void showSpaceGameEndDialog(bool success);
+    void positionSpaceShip();
     QString getRandomWord(); // for reward mode
 
     void createSaveApplePage();

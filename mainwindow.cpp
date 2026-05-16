@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QApplication>
 #include <QMessageBox>
 #include <QDialog>
 #include <QUrl>
@@ -22,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    qApp->installEventFilter(this);
 
     connect(ui->btnNewUser, &QPushButton::clicked, this, &MainWindow::onNewUserClicked);
     connect(ui->btnEnglishTyping, &QPushButton::clicked, this, &MainWindow::onEnglishTypingClicked);
@@ -685,8 +687,14 @@ void MainWindow::onBackToGameSelectClicked()
 void MainWindow::onSelectSpaceBattleClicked()
 {
     actionClickSound.play();
-    ui->stackedWidget->addWidget(pageSpaceBattle);
+    if (ui->stackedWidget->indexOf(pageSpaceBattle) == -1) {
+        ui->stackedWidget->addWidget(pageSpaceBattle);
+    }
     ui->stackedWidget->setCurrentWidget(pageSpaceBattle);
+    if (spaceGameArea) {
+        spaceGameArea->setFocus();
+    }
+    positionSpaceShip();
 }
 
 void MainWindow::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
@@ -718,6 +726,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         spaceBattleBackgroundLabel->setGeometry(0, 0, pageSpaceBattle->width(), pageSpaceBattle->height());
         QPixmap scaled = spaceBattleBackgroundLabel->pixmap(Qt::ReturnByValue).scaled(pageSpaceBattle->size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
         spaceBattleBackgroundLabel->setPixmap(scaled);
+        positionSpaceShip();
     }
     if (basketLabel && saveAppleGameArea) {
         int x = saveAppleGameArea->width() - basketLabel->width() - 20;
@@ -740,6 +749,7 @@ void MainWindow::createSpaceBattlePage()
 
     spaceGameArea = new QWidget(pageSpaceBattle);
     spaceGameArea->setAttribute(Qt::WA_TransparentForMouseEvents);
+    spaceGameArea->setFocusPolicy(Qt::StrongFocus);
     spaceGameArea->setStyleSheet("background: transparent;");
 
     QVBoxLayout *spaceLayout = new QVBoxLayout(pageSpaceBattle);
@@ -851,7 +861,7 @@ void MainWindow::createSpaceBattlePage()
         shipLabel->setPixmap(shipPixmap);
         shipLabel->setScaledContents(true);
         shipLabel->setFixedSize(50, 50);
-        shipLabel->move(425, 520); // 底部中央
+        shipLabel->move(0, 0);
     }
 
     // 初始化设置面板（隐藏）
@@ -937,6 +947,9 @@ void MainWindow::startSpaceBattle()
     }
     spaceUpgradeTimer->start(spaceUpgradeInterval * 1000);
     updateSpaceGameStateLabels();
+    if (spaceGameArea) {
+        spaceGameArea->setFocus();
+    }
 }
 
 void MainWindow::pauseSpaceBattle()
@@ -983,7 +996,7 @@ void MainWindow::resetSpaceBattle()
     rewardWords.clear();
 
     // 重置飞船位置
-    if (shipLabel) shipLabel->move(425, 520);
+    if (shipLabel) positionSpaceShip();
 
     spaceBgPlayer->stop();
     spaceGameTimer->stop();
@@ -992,6 +1005,14 @@ void MainWindow::resetSpaceBattle()
     spaceUpgradeTimer->stop();
 
     updateSpaceGameStateLabels();
+}
+
+void MainWindow::positionSpaceShip()
+{
+    if (!shipLabel || !spaceGameArea) return;
+    int x = qMax(0, (spaceGameArea->width() - shipLabel->width()) / 2);
+    int y = qMax(0, spaceGameArea->height() - shipLabel->height() - 10);
+    shipLabel->move(x, y);
 }
 
 void MainWindow::spawnEnemy()
@@ -1032,13 +1053,13 @@ void MainWindow::spawnEnemy()
     spacePlaneOutSound.play();
 }
 
-void MainWindow::spawnBullet(const QPoint &start, const QPoint &target)
+void MainWindow::spawnBullet(const QPoint &start, const QPoint &target, int targetEnemyId)
 {
     BulletItem bullet;
     bullet.active = true;
-    bullet.position = start;
-    bullet.target = target;
-    bullet.targetEnemyId = -1;
+    bullet.position = QPointF(start);
+    bullet.target = QPointF(target);
+    bullet.targetEnemyId = targetEnemyId;
 
     bullet.bulletLabel = new QLabel(spaceGameArea);
     QPixmap bulletPixmap(":/resource/Space/Images/SPACE_BOMB.png");
@@ -1046,7 +1067,7 @@ void MainWindow::spawnBullet(const QPoint &start, const QPoint &target)
         bullet.bulletLabel->setPixmap(bulletPixmap);
         bullet.bulletLabel->setScaledContents(true);
         bullet.bulletLabel->setFixedSize(10, 10);
-        bullet.bulletLabel->move(bullet.position);
+        bullet.bulletLabel->move(start);
         bullet.bulletLabel->show();
     }
 
@@ -1126,23 +1147,7 @@ void MainWindow::handleKeyPressForLetterSpace(const QChar &letter)
         if (enemy.active && enemy.letter == letter) {
             QPoint start = shipLabel->pos() + QPoint(shipLabel->width() / 2 - 5, 0); // 飞船顶部中央
             QPoint target = enemy.position + QPoint(enemy.enemyLabel->width() / 2, enemy.enemyLabel->height() / 2);
-            BulletItem bullet;
-            bullet.active = true;
-            bullet.position = start;
-            bullet.target = target;
-            bullet.targetEnemyId = enemy.id;
-
-            bullet.bulletLabel = new QLabel(spaceGameArea);
-            QPixmap bulletPixmap(":/resource/Space/Images/SPACE_BOMB.png");
-            if (!bulletPixmap.isNull()) {
-                bullet.bulletLabel->setPixmap(bulletPixmap);
-                bullet.bulletLabel->setScaledContents(true);
-                bullet.bulletLabel->setFixedSize(10, 10);
-                bullet.bulletLabel->move(bullet.position);
-                bullet.bulletLabel->show();
-            }
-            bullets.append(bullet);
-            spaceShootSound.play();
+            spawnBullet(start, target, enemy.id);
             return;
         }
     }
@@ -1191,26 +1196,32 @@ void MainWindow::onSpaceGameTimerTimeout()
     for (int i = bullets.size() - 1; i >= 0; --i) {
         auto &bullet = bullets[i];
 
-        QPoint currentTarget = bullet.target;
+        QPointF currentTarget = bullet.target;
         if (bullet.targetEnemyId >= 0) {
+            bool foundTarget = false;
             for (const EnemyItem &enemy : qAsConst(enemies)) {
                 if (enemy.active && enemy.id == bullet.targetEnemyId) {
-                    currentTarget = enemy.position + QPoint(enemy.enemyLabel->width() / 2, enemy.enemyLabel->height() / 2);
+                    currentTarget = QPointF(enemy.position + QPoint(enemy.enemyLabel->width() / 2, enemy.enemyLabel->height() / 2));
+                    foundTarget = true;
                     break;
                 }
             }
+            if (!foundTarget) {
+                bullet.targetEnemyId = -1;
+            }
         }
 
-        QPoint dir = currentTarget - bullet.position;
-        int distance = int(std::sqrt(double(dir.x() * dir.x() + dir.y() * dir.y())));
-        if (distance < 5) {
+        QPointF dir = currentTarget - bullet.position;
+        double distance = std::hypot(dir.x(), dir.y());
+        if (distance < 1.0) {
             removeBullet(i);
             continue;
         }
-        QPointF unitDir(dir.x() / qreal(distance), dir.y() / qreal(distance));
-        QPointF nextPos = QPointF(bullet.position) + unitDir * 10.0;
-        bullet.position = QPoint(qRound(nextPos.x()), qRound(nextPos.y()));
-        bullet.bulletLabel->move(bullet.position);
+        QPointF unitDir = dir / distance;
+        double step = qMin(10.0, distance);
+        QPointF nextPos = bullet.position + unitDir * step;
+        bullet.position = nextPos;
+        bullet.bulletLabel->move(QPoint(qRound(nextPos.x()), qRound(nextPos.y())));
 
         QRect bulletRect(bullet.bulletLabel->geometry());
         bool hit = false;
@@ -1337,6 +1348,17 @@ QString MainWindow::getRandomWord()
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
+    if (event->type() == QEvent::KeyPress && ui->stackedWidget->currentWidget() == pageSpaceBattle) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (!keyEvent->text().isEmpty()) {
+            QChar letter = keyEvent->text().toUpper().at(0);
+            if (letter.isLetter()) {
+                handleKeyPressForLetterSpace(letter);
+                return true;
+            }
+        }
+    }
+
     if (event->type() == QEvent::Enter) {
         // 鼠标悬停在按钮上时播放声音
         aniBtnEnterSound.play();
