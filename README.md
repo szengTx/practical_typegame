@@ -104,6 +104,14 @@ cmake --build build --config Release
 - `mainwindow.h` 包含所有游戏状态、计时器、控件指针及事件处理函数
 - `mainwindow.cpp` 将 `saveApple` 与 `spaceBattle` 页面均通过代码动态创建，并与主 `stackedWidget` 进行切换
 - `keyPressEvent()` 负责将字母输入分发到当前游戏模式的处理逻辑
+- `QNetworkAccessManager` 用于异步调用大模型接口，动态生成太空大战奖励模式的单词列表
+
+## 大模型奖励词生成
+
+- 当太空大战启用奖励模式时，程序会异步请求大模型接口，获取一组适合奖励模式的短英文单词
+- 如果未配置 API Key 或接口不可用，程序会退回到本地内置词库
+- 相关配置通过环境变量 `LLM_API_URL` 和 `LLM_API_KEY` 提供
+- 支持在项目根目录的 `.env` 文件中配置值，程序会自动读取该文件并加载到运行时环境中
 
 ## 可扩展点
 
