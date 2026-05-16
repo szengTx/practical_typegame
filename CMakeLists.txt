@@ -15,7 +15,7 @@ SET(CMAKE_AUTOMOC ON)
 SET(CMAKE_AUTORCC ON)
 SET(CMAKE_AUTOUIC ON)
 
-find_package(Qt5 COMPONENTS Core Widgets Gui Multimedia REQUIRED)
+find_package(Qt5 COMPONENTS Core Widgets Gui Multimedia Network REQUIRED)
 
 file(GLOB UI_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.ui")
 file(GLOB RCC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.qrc")
@@ -36,4 +36,5 @@ target_link_libraries(${PROJECT_NAME}
 	Qt5::Core
 	Qt5::Gui
 	Qt5::Multimedia
+	Qt5::Network
 )

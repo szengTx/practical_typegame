@@ -2,3 +2,7 @@
 # Ignore all files in the resources directory
 resource/*
 image/*
+
+# Ignore local environment variables
+.env
+.env.example

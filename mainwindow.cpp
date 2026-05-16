@@ -16,6 +16,14 @@
 #include <QCheckBox>
 #include <QLayout>
 #include <QStringList>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QVariant>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
 #include <cmath>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -119,6 +127,14 @@ MainWindow::MainWindow(QWidget *parent)
     createSaveApplePage();
 
     createSpaceBattlePage();
+
+    networkManager = new QNetworkAccessManager(this);
+    connect(networkManager, &QNetworkAccessManager::finished, this, &MainWindow::handleRewardWordsReply);
+    llmApiUrl = QString::fromUtf8(qgetenv("LLM_API_URL"));
+    llmApiKey = QString::fromUtf8(qgetenv("LLM_API_KEY"));// 可以通过环境变量设置LLM API的URL和Key，方便测试和部署
+    if (llmApiUrl.isEmpty()) {
+        llmApiUrl = QStringLiteral("https://api.openai.com/v1/chat/completions");// 默认使用OpenAI的ChatGPT接口
+    }
 
     // 初始化本地词库 for reward mode
     localWords << "apple" << "space" << "battle" << "typing" << "game" << "enemy" << "ship" << "bomb" << "score" << "life";
@@ -944,6 +960,7 @@ void MainWindow::startSpaceBattle()
     spaceSpawnTimer->start(2000); // 每2秒生成一个敌机
     if (spaceRewardMode) {
         spaceRewardTimer->start(10000); // 每10秒生成奖励单词
+        requestRewardWordList();
     }
     spaceUpgradeTimer->start(spaceUpgradeInterval * 1000);
     updateSpaceGameStateLabels();
@@ -1340,9 +1357,81 @@ void MainWindow::showSpaceGameEndDialog(bool success)
     }
 }
 
+void MainWindow::requestRewardWordList()
+{
+    generatedRewardWords.clear();
+    if (llmApiKey.isEmpty() || llmApiUrl.isEmpty()) {
+        return;
+    }
+
+    QNetworkRequest request;
+    request.setUrl(QUrl(llmApiUrl));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QVariant(QStringLiteral("application/json")));
+    request.setRawHeader("Authorization", QByteArray("Bearer ") + llmApiKey.toUtf8());
+
+    QJsonObject systemMessage;
+    systemMessage["role"] = "system";
+    systemMessage["content"] = QString::fromUtf16(u"你是一个帮助生成适合太空大战奖励模式的英语单词列表的助手。返回一个仅包含单词的 JSON 数组。每个单词长度不超过 8 个字符。");
+
+    QJsonObject userMessage;
+    userMessage["role"] = "user";
+    userMessage["content"] = QString::fromUtf16(u"请生成 6 个适合太空战奖励模式的简短英文单词，并以 JSON 数组形式返回，例如 [\"laser\",\"shield\",\"boost\"]。不要返回额外说明文字。");
+
+    QJsonArray messages;
+    messages.append(systemMessage);
+    messages.append(userMessage);
+
+    QJsonObject requestBody;
+    requestBody["model"] = "gpt-3.5-turbo";
+    requestBody["messages"] = messages;
+    requestBody["temperature"] = 0.8;
+    requestBody["max_tokens"] = 100;
+
+    networkManager->post(request, QJsonDocument(requestBody).toJson(QJsonDocument::Compact));
+}
+
+void MainWindow::handleRewardWordsReply(QNetworkReply *reply)
+{
+    if (reply->error() == QNetworkReply::NoError) {
+        QByteArray responseData = reply->readAll();
+        QJsonDocument responseDoc = QJsonDocument::fromJson(responseData);
+        if (responseDoc.isObject()) {
+            QJsonObject responseObject = responseDoc.object();
+            QJsonArray choices = responseObject.value("choices").toArray();
+            if (!choices.isEmpty()) {
+                QJsonObject firstChoice = choices.first().toObject();
+                QJsonObject message = firstChoice.value("message").toObject();
+                QString content = message.value("content").toString().trimmed();
+                QJsonDocument contentDoc = QJsonDocument::fromJson(content.toUtf8());
+                if (contentDoc.isArray()) {
+                    QJsonArray wordArray = contentDoc.array();
+                    for (const QJsonValue &value : wordArray) {
+                        QString word = value.toString().trimmed();
+                        if (!word.isEmpty()) {
+                            generatedRewardWords.append(word);
+                        }
+                    }
+                } else {
+                    content.remove('[').remove(']').remove('"');
+                    QStringList words = content.split(',', Qt::SkipEmptyParts);
+                    for (QString word : words) {
+                        word = word.trimmed();
+                        if (!word.isEmpty()) {
+                            generatedRewardWords.append(word);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    reply->deleteLater();
+}
+
 QString MainWindow::getRandomWord()
 {
-    // 模拟API调用，这里使用本地词库
+    if (!generatedRewardWords.isEmpty()) {
+        return generatedRewardWords.at(QRandomGenerator::global()->bounded(generatedRewardWords.size()));
+    }
     return localWords.at(QRandomGenerator::global()->bounded(localWords.size()));
 }
 

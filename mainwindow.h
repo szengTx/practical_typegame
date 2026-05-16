@@ -17,6 +17,9 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
+class QNetworkAccessManager;
+class QNetworkReply;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -169,6 +172,10 @@ private:
     bool spaceRewardMode;
     bool shipMovingRight;
     int nextEnemyId;
+    QNetworkAccessManager *networkManager;
+    QString llmApiUrl;
+    QString llmApiKey;
+    QStringList generatedRewardWords;
     QStringList localWords; // for reward mode fallback
 
     void createSpaceBattlePage();
@@ -177,6 +184,8 @@ private:
     void resetSpaceBattle();
     void spawnEnemy();
     void spawnBullet(const QPoint &start, const QPoint &target, int targetEnemyId = -1);
+    void requestRewardWordList();
+    void handleRewardWordsReply(QNetworkReply *reply);
     void spawnRewardWord();
     void updateSpaceGameStateLabels();
     void removeEnemy(int index);
